@@ -40,6 +40,11 @@ func (p *Properties) Get(key string) string {
 	return p.values[key]
 }
 
+// GetMap returns a map
+func (p *Properties) GetMap() map[string]string {
+	return p.values
+}
+
 // GetDefault retrieves the value of a property. If the property does not
 // exist, then the default value will be returned.
 func (p *Properties) GetDefault(key, defVal string) string {

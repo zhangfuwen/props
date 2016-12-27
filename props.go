@@ -56,7 +56,7 @@ func (p *Properties) GetMap() map[string]string {
 	m := make(map[string]string)
 	iter := p.values.IterFunc()
 	for pair,ok := iter();ok; pair,ok= iter() {
-		m[pair.Key.(string)] = m[pair.Value.(Element).Value]
+		m[pair.Key.(string)] = pair.Value.(Element).Value
 	}
 	return m
 }

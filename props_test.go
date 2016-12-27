@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+
 	"github.com/cevaris/ordered_map"
 )
 
@@ -44,10 +45,9 @@ key2=b
 key3=c
 `
 
-
 func DeepEqual(m1 map[string]string, m2 *ordered_map.OrderedMap) bool {
 	iter := m2.IterFunc()
-	for pair,ok := iter(); ok; pair,ok = iter() {
+	for pair, ok := iter(); ok; pair, ok = iter() {
 		if m1[pair.Key.(string)] != pair.Value.(Element).Value {
 			return false
 		}
@@ -178,8 +178,8 @@ func TestReadEscapes(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	p := NewProperties()
-	p.values.Set("key1",Element{
-		Value:"foo",
+	p.values.Set("key1", Element{
+		Value: "foo",
 	})
 
 	if p.Get("key1") != "foo" {
@@ -197,19 +197,19 @@ func TestGet(t *testing.T) {
 
 func TestSet(t *testing.T) {
 	p := NewProperties()
-	p.Set("key1","foo")
-	p.Set("key2","bar")
+	p.Set("key1", "foo")
+	p.Set("key2", "bar")
 
 	ele, ok := p.values.Get("key2")
-	if !ok || ele.(Element).Value!="bar" {
+	if !ok || ele.(Element).Value != "bar" {
 		t.Errorf("want: bar; got %q", ele.(Element).Value)
 	}
 }
 
 func TestNames(t *testing.T) {
 	p := NewProperties()
-	p.values.Set("key1",Element{Value:"foo"})
-	p.values.Set("key2",Element{Value:"bar"})
+	p.values.Set("key1", Element{Value: "foo"})
+	p.values.Set("key2", Element{Value: "bar"})
 
 	want := []string{"key1", "key2"}
 	got := p.Names()
@@ -243,7 +243,7 @@ var writeTests = []writeTest{
 func TestWrite(t *testing.T) {
 	for _, test := range writeTests {
 		p := NewProperties()
-		p.values.Set(test.key,Element{Value:test.val})
+		p.values.Set(test.key, Element{Value: test.val})
 
 		buf := new(bytes.Buffer)
 		err := p.Write(buf)
@@ -255,5 +255,15 @@ func TestWrite(t *testing.T) {
 		if got != test.want {
 			t.Errorf("want: %q; got: %q", test.want, got)
 		}
+	}
+}
+
+func TestProperties_GetMap(t *testing.T) {
+	p, err := Read(bytes.NewBufferString(keys))
+	if err != nil {
+		t.Fail()
+	}
+	if p.GetMap()["key1"] != "a" {
+		t.Fail()
 	}
 }

@@ -198,6 +198,7 @@ func stateValue(s *scanner, ch rune) stateFunc {
 		})
 		s.key.Reset()
 		s.value.Reset()
+		s.comment.Reset()
 		s.current = &s.key
 		return stateNone
 	}

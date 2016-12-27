@@ -7,12 +7,13 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+	"github.com/cevaris/ordered_map"
 )
 
 func TestNewProps(t *testing.T) {
 	p := NewProperties()
-	if len(p.values) > 0 {
-		t.Errorf("want: 0 elements; got: %d", len(p.values))
+	if p.values.Len() > 0 {
+		t.Errorf("want: 0 elements; got: %d", p.values.Len())
 	}
 }
 
@@ -32,8 +33,8 @@ func TestReadComments(t *testing.T) {
 		t.Errorf("got error: %v", err)
 	}
 
-	if len(p.values) > 0 {
-		t.Errorf("want: 0 elements; got: %d", len(p.values))
+	if p.values.Len() > 0 {
+		t.Errorf("want: 0 elements; got: %d", p.values.Len())
 	}
 }
 
@@ -43,6 +44,16 @@ key2=b
 key3=c
 `
 
+
+func DeepEqual(m1 map[string]string, m2 *ordered_map.OrderedMap) bool {
+	iter := m2.IterFunc()
+	for pair,ok := iter(); ok; pair,ok = iter() {
+		if m1[pair.Key.(string)] != pair.Value.(Element).Value {
+			return false
+		}
+	}
+	return true
+}
 func TestReadSimple(t *testing.T) {
 	p, err := Read(bytes.NewBufferString(simple))
 
@@ -56,7 +67,7 @@ func TestReadSimple(t *testing.T) {
 		"key3": "c",
 	}
 
-	if !reflect.DeepEqual(want, p.values) {
+	if !DeepEqual(want, p.values) {
 		t.Errorf("want: %#v; got: %#v", want, p.values)
 	}
 }
@@ -84,7 +95,7 @@ func TestReadContinued(t *testing.T) {
 		"key23": "ghijkl",
 	}
 
-	if !reflect.DeepEqual(want, p.values) {
+	if !DeepEqual(want, p.values) {
 		t.Errorf("want: %#v; got: %#v", want, p.values)
 	}
 }
@@ -116,11 +127,11 @@ func TestReadKeys(t *testing.T) {
 		"key7": "",
 	}
 
-	if !reflect.DeepEqual(want, p.values) {
+	if !DeepEqual(want, p.values) {
 		t.Errorf("want: %#v; got: %#v", want, p.values)
 	}
 
-	if _, ok := p.values["key7"]; !ok {
+	if _, ok := p.values.Get("key7"); !ok {
 		t.Error("want: key7; got none")
 	}
 }
@@ -160,14 +171,16 @@ func TestReadEscapes(t *testing.T) {
 		"key\f10": "s\ft",
 	}
 
-	if !reflect.DeepEqual(want, p.values) {
+	if !DeepEqual(want, p.values) {
 		t.Errorf("want: %#v; got: %#v", want, p.values)
 	}
 }
 
 func TestGet(t *testing.T) {
 	p := NewProperties()
-	p.values["key1"] = "foo"
+	p.values.Set("key1",Element{
+		Value:"foo",
+	})
 
 	if p.Get("key1") != "foo" {
 		t.Errorf("want: foo; got: %q", p.Get("key1"))
@@ -184,18 +197,19 @@ func TestGet(t *testing.T) {
 
 func TestSet(t *testing.T) {
 	p := NewProperties()
-	p.Set("key1", "foo")
-	p.Set("key1", "bar")
+	p.Set("key1","foo")
+	p.Set("key2","bar")
 
-	if p.values["key1"] != "bar" {
-		t.Errorf("want: bar; got %q", p.values["key1"])
+	ele, ok := p.values.Get("key2")
+	if !ok || ele.(Element).Value!="bar" {
+		t.Errorf("want: bar; got %q", ele.(Element).Value)
 	}
 }
 
 func TestNames(t *testing.T) {
 	p := NewProperties()
-	p.values["key1"] = "foo"
-	p.values["key2"] = "bar"
+	p.values.Set("key1",Element{Value:"foo"})
+	p.values.Set("key2",Element{Value:"bar"})
 
 	want := []string{"key1", "key2"}
 	got := p.Names()
@@ -229,7 +243,7 @@ var writeTests = []writeTest{
 func TestWrite(t *testing.T) {
 	for _, test := range writeTests {
 		p := NewProperties()
-		p.values[test.key] = test.val
+		p.values.Set(test.key,Element{Value:test.val})
 
 		buf := new(bytes.Buffer)
 		err := p.Write(buf)

@@ -8,8 +8,8 @@ import (
 
 func TestNewExpander(t *testing.T) {
 	e := NewExpander()
-	if len(e.values) > 0 {
-		t.Errorf("want: 0 elements; got: %d", len(e.values))
+	if e.values.Len() > 0 {
+		t.Errorf("want: 0 elements; got: %d", e.values.Len())
 	}
 	if len(e.Prefix) < 1 {
 		t.Error("want prefix; got none")

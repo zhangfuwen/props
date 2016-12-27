@@ -21,6 +21,7 @@ type scanner struct {
 	// the key and value for the current line
 	key   bytes.Buffer
 	value bytes.Buffer
+	comment bytes.Buffer
 
 	// the current output buffer; either key or value
 	current *bytes.Buffer
@@ -85,7 +86,11 @@ func (s *scanner) checkEscape(ch rune) stateFunc {
 
 func (s *scanner) done() {
 	if s.key.Len() > 0 {
-		s.p.values[s.key.String()] = s.value.String()
+		s.p.values.Set(s.key.String(), Element{
+			Comment:s.comment.String(),
+			Key:s.key.String(),
+			Value:s.value.String(),
+		})
 	}
 }
 
@@ -100,6 +105,7 @@ func stateNone(s *scanner, ch rune) stateFunc {
 	}
 
 	if ch == '#' || ch == '!' {
+		s.comment.WriteRune(ch)
 		return stateComment
 	}
 
@@ -115,6 +121,7 @@ func stateNone(s *scanner, ch rune) stateFunc {
 // stateComment indicates that the current line is a comment; all characters
 // up to the next newline will be ignored.
 func stateComment(s *scanner, ch rune) stateFunc {
+	s.comment.WriteRune(ch)
 	if ch == '\r' || ch == '\n' {
 		return stateNone
 	}
@@ -184,7 +191,11 @@ func stateValue(s *scanner, ch rune) stateFunc {
 	}
 
 	if ch == '\r' || ch == '\n' {
-		s.p.values[s.key.String()] = s.value.String()
+		s.p.values.Set(s.key.String(), Element{
+			Key:s.key.String(),
+			Value:s.value.String(),
+			Comment:s.comment.String(),
+		})
 		s.key.Reset()
 		s.value.Reset()
 		s.current = &s.key

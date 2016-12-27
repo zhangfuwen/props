@@ -8,17 +8,24 @@ import (
 	"fmt"
 	"io"
 	"unicode"
+	"github.com/cevaris/ordered_map"
 )
 
 // Properties represents a set of key-value pairs.
 type Properties struct {
-	values map[string]string
+	values *ordered_map.OrderedMap
+}
+
+type Element struct {
+	Key string
+	Value string
+	Comment string
 }
 
 // NewProperties creates a new, empty property set.
 func NewProperties() *Properties {
 	p := &Properties{
-		values: make(map[string]string),
+		values: ordered_map.NewOrderedMap(),
 	}
 	return p
 }
@@ -37,31 +44,50 @@ func Read(r io.Reader) (*Properties, error) {
 // Get retrieves the value of a property. If the property does not exist, an
 // empty string will be returned.
 func (p *Properties) Get(key string) string {
-	return p.values[key]
+	ele, ok := p.values.Get(key)
+	if !ok {
+		return ""
+	}
+	return ele.(Element).Value
 }
 
 // GetMap returns a map
 func (p *Properties) GetMap() map[string]string {
-	return p.values
+	m := make(map[string]string)
+	iter := p.values.IterFunc()
+	for pair,ok := iter();ok; pair,ok= iter() {
+		m[pair.Key.(string)] = m[pair.Value.(Element).Value]
+	}
+	return m
 }
 
 // GetDefault retrieves the value of a property. If the property does not
 // exist, then the default value will be returned.
 func (p *Properties) GetDefault(key, defVal string) string {
-	if v, ok := p.values[key]; ok {
-		return v
+	if val := p.Get(key); val!="" {
+		return val
 	}
 	return defVal
 }
 
 // Set adds or changes the value of a property.
 func (p *Properties) Set(key, val string) {
-	p.values[key] = val
+	if ele, ok :=p.values.Get(key); ok {
+		p.values.Set(key,Element{
+			Key:key,
+			Value:ele.(Element).Value,
+			Comment:ele.(Element).Comment,
+		})
+	}else {
+		p.values.Set(key, Element{
+			Value:val,
+		})
+	}
 }
 
 // Clear removes all key-value pairs.
 func (p *Properties) Clear() {
-	p.values = make(map[string]string)
+	p.values = ordered_map.NewOrderedMap()
 }
 
 /*
@@ -156,9 +182,10 @@ func (p *Properties) Load(r io.Reader) error {
 
 // Names returns the keys for all properties in the set.
 func (p *Properties) Names() []string {
-	names := make([]string, 0, len(p.values))
-	for k, _ := range p.values {
-		names = append(names, k)
+	names := make([]string, 0, p.values.Len())
+	iter := p.values.IterFunc()
+	for pair,ok := iter();ok; pair,ok = iter() {
+		names = append(names, pair.Key.(string))
 	}
 	return names
 }
@@ -170,10 +197,15 @@ func (p *Properties) Names() []string {
 // Note: if the property set was loaded from a file, the formatting and
 // comments from the original file will not be retained in the output file.
 func (p *Properties) Write(w io.Writer) error {
-	for k, v := range p.values {
-		line := fmt.Sprintf("%s=%s\n", escape(k, true),
-			escape(v, false))
-		_, err := io.WriteString(w, line)
+	iter := p.values.IterFunc()
+	for pair,ok := iter();ok;pair,ok = iter() {
+		_, err:= io.WriteString(w,pair.Value.(Element).Comment)
+		if err!=nil {
+			return err
+		}
+		line := fmt.Sprintf("%s=%s\n", escape(pair.Key.(string), true),
+			escape(pair.Value.(Element).Value, false))
+		_, err = io.WriteString(w, line)
 		if err != nil {
 			return err
 		}

@@ -105,7 +105,8 @@ func stateNone(s *scanner, ch rune) stateFunc {
 	}
 
 	if ch == '#' || ch == '!' {
-		s.comment.WriteRune(ch)
+		s.current = &s.comment
+		s.current.WriteRune(ch)
 		return stateComment
 	}
 
@@ -121,7 +122,7 @@ func stateNone(s *scanner, ch rune) stateFunc {
 // stateComment indicates that the current line is a comment; all characters
 // up to the next newline will be ignored.
 func stateComment(s *scanner, ch rune) stateFunc {
-	s.comment.WriteRune(ch)
+	s.current.WriteRune(ch)
 	if ch == '\r' || ch == '\n' {
 		return stateNone
 	}

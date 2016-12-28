@@ -258,12 +258,32 @@ func TestWrite(t *testing.T) {
 	}
 }
 
+var keys2 = `
+#key1 with comment
+key1=a
+
+#key2 with comment
+key2:b
+key3 c
+key4 = d
+key5 : e
+key6   f
+key7
+`
 func TestProperties_GetMap(t *testing.T) {
-	p, err := Read(bytes.NewBufferString(keys))
+	p, err := Read(bytes.NewBufferString(keys2))
 	if err != nil {
 		t.Fail()
 	}
 	if p.GetMap()["key1"] != "a" {
+		t.Fail()
+	}
+	ele,ok:=p.values.Get("key1")
+	if !ok {
+		t.Fail()
+	}
+	if ele.(Element).Comment!="#key1 with comment\n" {
+		t.Errorf("%v",ele)
 		t.Fail()
 	}
 }
